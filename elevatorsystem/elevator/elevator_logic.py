@@ -1,10 +1,18 @@
 from .models import Elevator, Request
-from django.db.models import F
+from django.db.models import F, Value, IntegerField, Case, When
+from django.db.models.functions import Abs
 
 # this function is deciding which elevator to call 
 def decide_elevator(floor,elevator_system):
-    elevator = Elevator.objects.filter(elevator_system = elevator_system,is_operational = True).order_by(F('current_floor')-floor)
-    # print(elevator[0].elevator_system.name)
+    print("hii")
+    elevator = Elevator.objects.filter(elevator_system=elevator_system, is_operational=True).annotate(near=Abs(F('current_floor') - floor)).order_by('near')
+
+    # elevator = Elevator.objects.filter(elevator_system=elevator_system,is_operational=True).annotate(near=Case(When(current_floor__gte=F('floor'), then=F('current_floor') - F('floor')),When(current_floor__lt=F('floor'), then=F('floor') - F('current_floor')),output_field=IntegerField())).order_by('-near')
+
+    print(elevator[0].current_floor)
+    for i in elevator:
+        print(i.elevator_id," ",i.current_floor," ",i.near)
+    # print("hear")
     return elevator[0]
 
 def move_elevator(elevator_id,next_floor):
@@ -20,8 +28,6 @@ def move_elevator(elevator_id,next_floor):
     else:
         elevator.direction = 'stopped'
         elevator.is_busy = False
-
-    elevator.current_floor = next_floor
     elevator.save()
     return elevator.direction
 
