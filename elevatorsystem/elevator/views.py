@@ -29,17 +29,40 @@ class ElevatorViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def move(self, request, pk=None):
         elevator = self.get_object()
-        move_elevator(elevator.id)
-        return Response({'message': 'Elevator movement triggered.'})
+        if not elevator.is_operational:
+            return Response({"message": "This elevator is under maintenance!!"},status=status.HTTP_200_OK)
+        destination = request.data["destination"]
+        req = request.data["request"]
+        request = Request.objects.get(id = req)
+        request.destination_floor = destination
+        request.is_complete = True
+        request.save()
+        direction = move_elevator(pk,destination)
+        return Response({'message': 'Elevator movement is in {} direction'.format(direction)})
+    @action(detail = True, methods=['post'])
+    def Operational(self,request,pk=None):
+        op = request.data["operational"]
+        elevator = Elevator.objects.get(id = pk)
+        elevator.is_operational = op
+        elevator.save()
+        return Response({"message" : "This elevator is not operational"},status=status.HTTP_200_OK)
+    
+    @action(detail = True ,methods=["get"])
+    def ElevatorRequests(self,request,pk=None):
+        elevator = Elevator.objects.get(id = pk)
+        requests = Request.objects.filter(elevator = elevator)
+        serializer = RequestSerializer(requests,many = True)
+        return Response(serializer.data,status = status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'])
-    def open(self, request, pk=None):
+
+    @action(detail=True, methods=['get'])
+    def OpenDoor(self, request, pk=None):
         elevator = self.get_object()
         open_door(elevator.id)
         return Response({'message': 'Elevator door opened'})
 
-    @action(detail=True, methods=['post'])
-    def close(self, request, pk=None):
+    @action(detail=True, methods=['get'])
+    def CloseDoor(self, request, pk=None):
         elevator = self.get_object()
         close_door(elevator.id)
         return Response({'message': 'Elevator door closed'})
@@ -56,8 +79,10 @@ class RequestViewSet(viewsets.ModelViewSet):
         try:
             elevator_system = ElevatorSystem.objects.get(name = name)
             elevator = decide_elevator(floor,elevator_system)
+            elevator.current_floor = floor
+            elevator.save()
             new_request = Request(floor = floor,elevator = elevator)
             new_request.save()
         except:
             return Response({"message":"Wrong Inputs..."},status=status.HTTP_400_BAD_REQUEST)
-        return Response({"message":"Elevator {} is coming...".format(elevator),"elevator":elevator.id},status=status.HTTP_202_ACCEPTED)
+        return Response({"message":"Elevator {} is coming...".format(elevator),"elevator":elevator.id,"request" : new_request.id},status=status.HTTP_202_ACCEPTED)
