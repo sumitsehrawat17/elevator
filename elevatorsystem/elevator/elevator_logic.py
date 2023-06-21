@@ -2,9 +2,10 @@ from .models import Elevator, Request
 from django.db.models import F
 
 # this function is deciding which elevator to call 
-def decide_elevator(floor):
-    elevator = Elevator.objects.all().order_by(abs(F('current_floor')-floor))
-    return elevator[0].id
+def decide_elevator(floor,elevator_system):
+    elevator = Elevator.objects.filter(elevator_system = elevator_system).order_by(F('current_floor')-floor)
+    # print(elevator[0].elevator_system.name)
+    return elevator[0]
 
 def move_elevator(elevator_id,next_floor):
     elevator = Elevator.objects.get(id=elevator_id)
@@ -31,11 +32,6 @@ def open_door(elevator_id):
     elevator.is_open = True
     elevator.is_busy = False
     elevator.save()
-    print("Doors are Open")
-    
-
-    
-
 
 def close_door(elevator_id):
     elevator = Elevator.objects.get(id=elevator_id)
@@ -45,4 +41,3 @@ def close_door(elevator_id):
     elevator.is_open = False
     elevator.is_busy = True
     elevator.save()
-    print("Doors are Closed")
