@@ -38,6 +38,8 @@ class ElevatorViewSet(viewsets.ModelViewSet):
         request.is_complete = True
         request.save()
         direction = move_elevator(pk,destination)
+        elevator.current_floor = destination
+        elevator.save()
         return Response({'message': 'Elevator movement is in {} direction'.format(direction)})
     @action(detail = True, methods=['post'])
     def Operational(self,request,pk=None):
@@ -85,4 +87,4 @@ class RequestViewSet(viewsets.ModelViewSet):
             new_request.save()
         except:
             return Response({"message":"Wrong Inputs..."},status=status.HTTP_400_BAD_REQUEST)
-        return Response({"message":"Elevator {} is coming...".format(elevator),"elevator":elevator.id,"request" : new_request.id},status=status.HTTP_202_ACCEPTED)
+        return Response({"message":"Elevator {} is coming...".format(elevator.id),"elevator":elevator.id,"request" : new_request.id},status=status.HTTP_202_ACCEPTED)
